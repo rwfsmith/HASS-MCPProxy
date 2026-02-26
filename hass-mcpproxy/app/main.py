@@ -31,9 +31,23 @@ STATIC_DIR = Path(__file__).parent / "ui"
 MCP_PROXY_PORT = int(os.environ.get("MCP_PROXY_PORT", "8080"))
 MCP_PROXY_HOST = os.environ.get("MCP_PROXY_HOST", "0.0.0.0")
 REPOS_DIR = DATA_DIR / "repos"
-LOG_LEVEL = os.environ.get("LOG_LEVEL", "info").upper()
-ALLOW_ALL_ORIGINS = os.environ.get("ALLOW_ALL_ORIGINS", "true").lower() == "true"
-PASS_ENVIRONMENT = os.environ.get("PASS_ENVIRONMENT", "false").lower() == "true"
+# ── Read HA Supervisor add-on options (/data/options.json) ───────────────────
+_OPTIONS_FILE = Path("/data/options.json")
+
+def _load_ha_options() -> dict:
+    if _OPTIONS_FILE.exists():
+        try:
+            import json as _json
+            return _json.loads(_OPTIONS_FILE.read_text())
+        except Exception:
+            pass
+    return {}
+
+_ha_opts = _load_ha_options()
+
+LOG_LEVEL = _ha_opts.get("log_level", os.environ.get("LOG_LEVEL", "info")).upper()
+ALLOW_ALL_ORIGINS = bool(_ha_opts.get("allow_all_origins", os.environ.get("ALLOW_ALL_ORIGINS", "true") == "true"))
+PASS_ENVIRONMENT = bool(_ha_opts.get("pass_environment", os.environ.get("PASS_ENVIRONMENT", "false") == "true"))
 UI_PORT = int(os.environ.get("UI_PORT", "8099"))
 
 logging.basicConfig(
