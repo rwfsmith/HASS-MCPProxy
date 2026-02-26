@@ -427,8 +427,9 @@ async def serve_ui(request: Request):
     return HTMLResponse(index.read_text())
 
 
-if STATIC_DIR.exists():
-    app.mount("/static", StaticFiles(directory=str(STATIC_DIR / "static")), name="static")
+static_subdir = STATIC_DIR / "static"
+if static_subdir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_subdir)), name="static")
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
