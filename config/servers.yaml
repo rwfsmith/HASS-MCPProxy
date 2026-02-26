@@ -1,0 +1,80 @@
+# HASS-MCPProxy Server Configuration
+# Each server defined here will be exposed by mcp-proxy and available in Home Assistant
+# via the MCP Server integration at: http://<host>:<port>/servers/<name>/sse
+
+proxy:
+  port: 8080
+  host: "0.0.0.0"
+  log_level: "INFO"      # DEBUG, INFO, WARNING, ERROR
+  allow_origins:
+    - "*"
+  pass_environment: false  # Set true to forward all host env vars into server processes
+
+# ─────────────────────────────────────────────────────────────────
+# Server definitions
+#
+# Supported types:
+#   uvx          – Run a PyPI package with `uvx` (no cloning needed)
+#   npx          – Run an npm package with `npx` (no cloning needed)
+#   github-python – Clone a GitHub repo and run with Python / uv
+#   github-node   – Clone a GitHub repo and run with Node.js
+#   command       – Arbitrary shell command (advanced)
+# ─────────────────────────────────────────────────────────────────
+servers:
+
+  # ── Example: Fetch server (PyPI package via uvx) ──────────────
+  - name: fetch
+    description: "MCP Fetch – retrieves web content"
+    enabled: true
+    type: uvx
+    package: mcp-server-fetch
+    # Optional extra args passed to the package
+    args: []
+    # Environment variables (supports ${VAR} substitution from the .env file)
+    env: {}
+
+  # ── Example: GitHub MCP server (npm package via npx) ──────────
+  - name: github
+    description: "GitHub MCP server"
+    enabled: false
+    type: npx
+    package: "@modelcontextprotocol/server-github"
+    args: []
+    env:
+      GITHUB_PERSONAL_ACCESS_TOKEN: "${GITHUB_PAT}"
+
+  # ── Example: Python server cloned from GitHub ──────────────────
+  # - name: my-python-server
+  #   description: "Custom Python MCP server built from source"
+  #   enabled: false
+  #   type: github-python
+  #   repo: "https://github.com/example/my-mcp-server"
+  #   branch: "main"
+  #   # Command run once inside the cloned directory to install dependencies
+  #   install: "uv pip install -e ."
+  #   # Command used to start the server (relative to the cloned repo root)
+  #   run: "python -m my_mcp_server"
+  #   args: []
+  #   env:
+  #     API_KEY: "${MY_API_KEY}"
+
+  # ── Example: Node server cloned from GitHub ───────────────────
+  # - name: my-node-server
+  #   description: "Custom Node.js MCP server built from source"
+  #   enabled: false
+  #   type: github-node
+  #   repo: "https://github.com/example/my-node-mcp-server"
+  #   branch: "main"
+  #   install: "npm install"
+  #   run: "node dist/index.js"
+  #   args: []
+  #   env: {}
+
+  # ── Example: Arbitrary command ────────────────────────────────
+  # - name: custom
+  #   description: "Any stdio MCP server command"
+  #   enabled: false
+  #   type: command
+  #   command: "/usr/local/bin/my-server"
+  #   args: ["--verbose"]
+  #   env: {}

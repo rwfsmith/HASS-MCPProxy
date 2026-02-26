@@ -1,0 +1,8 @@
+.env
+.git
+.gitignore
+repos/
+generated/
+__pycache__/
+*.pyc
+*.md

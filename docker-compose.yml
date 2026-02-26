@@ -1,0 +1,37 @@
+services:
+  hass-mcpproxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: hass-mcpproxy:latest
+    container_name: hass-mcpproxy
+    restart: unless-stopped
+
+    ports:
+      # MCP proxy SSE port – Home Assistant connects here
+      - "${PROXY_PORT:-8080}:8080"
+
+    volumes:
+      # Mount your servers.yaml so you can edit it without rebuilding
+      - ./config:/app/config:ro
+      # Cloned GitHub repos are persisted across restarts
+      - repos:/app/repos
+
+    env_file:
+      # Copy .env.example → .env and add your secrets
+      - path: .env
+        required: false
+
+    # Remove if you do NOT want host environment variables forwarded
+    # environment:
+    #   - MY_CUSTOM_VAR=value
+
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  repos:

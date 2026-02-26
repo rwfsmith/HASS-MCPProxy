@@ -1,0 +1,43 @@
+name: "HASS MCP Proxy"
+version: "1.0.0"
+slug: "hass_mcpproxy"
+description: "Run and manage MCP stdio servers, exposing SSE endpoints for the Home Assistant MCP Server integration."
+url: "https://github.com/yourname/HASS-MCPProxy"
+
+# ── Architecture support ──────────────────────────────────────────
+arch:
+  - amd64
+  - aarch64
+
+# ── Ports ─────────────────────────────────────────────────────────
+# Port 8080 is the mcp-proxy SSE port (used by HA MCP Server integration)
+ports:
+  8080/tcp: 8080
+ports_description:
+  8080/tcp: "MCP Proxy SSE port (used by Home Assistant MCP Server integration)"
+
+# ── Ingress (management UI) ────────────────────────────────────────
+ingress: true
+ingress_port: 8099
+ingress_stream: false
+panel_icon: "mdi:transit-connection-variant"
+panel_title: "MCP Proxy"
+
+# ── Permissions ───────────────────────────────────────────────────
+init: false
+map:
+  - data:rw        # Persistent config/data storage at /data
+
+# ── Options (configured via HA add-on UI) ─────────────────────────
+options:
+  log_level: "info"
+  allow_all_origins: true
+  pass_environment: false
+
+schema:
+  log_level: "list(trace|debug|info|notice|warning|error|fatal)?"
+  allow_all_origins: bool
+  pass_environment: bool
+
+# ── Resources ─────────────────────────────────────────────────────
+image: "ghcr.io/{arch}/alpine-base:{version}"

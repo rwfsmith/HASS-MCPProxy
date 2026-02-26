@@ -1,0 +1,14 @@
+configuration:
+  log_level:
+    name: Log Level
+    description: The log verbosity level for the add-on.
+  allow_all_origins:
+    name: Allow All CORS Origins
+    description: >
+      Allow all origins on the SSE server (required for Home Assistant to connect).
+      Disable only if you need to restrict access.
+  pass_environment:
+    name: Pass Host Environment
+    description: >
+      Forward all host environment variables to stdio MCP server processes.
+      Enable this if your servers need access to host environment variables.

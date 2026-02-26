@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MCP Proxy – Home Assistant</title>
+  <style>
+    :root {
+      --bg: #111827;
+      --surface: #1f2937;
+      --surface2: #374151;
+      --border: #374151;
+      --text: #f9fafb;
+      --text-muted: #9ca3af;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --radius: 10px;
+      --transition: 0.18s ease;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 1.5rem;
+    }
+    h1 { font-size: 1.5rem; font-weight: 700; display: flex; align-items: center; gap: .6rem; }
+    h2 { font-size: 1.05rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 1rem; }
+    header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.8rem; flex-wrap: wrap; gap: 1rem; }
+    header svg { width: 28px; height: 28px; fill: var(--accent); }
+
+    /* Status bar */
+    .status-bar { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.8rem; }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: .9rem 1.2rem;
+      flex: 1;
+      min-width: 140px;
+    }
+    .stat-card .label { font-size: .75rem; color: var(--text-muted); margin-bottom: .25rem; text-transform: uppercase; letter-spacing: .06em; }
+    .stat-card .value { font-size: 1.4rem; font-weight: 700; }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--danger); margin-right: 6px; transition: background var(--transition); }
+    .dot.ok { background: var(--success); }
+
+    /* Section */
+    section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.4rem; margin-bottom: 1.4rem; }
+
+    /* Server cards */
+    .server-grid { display: flex; flex-direction: column; gap: .8rem; }
+    .server-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .server-card.disabled { opacity: .55; }
+    .server-info { flex: 1; min-width: 180px; }
+    .server-name { font-weight: 600; font-size: .95rem; }
+    .server-desc { font-size: .8rem; color: var(--text-muted); margin-top: .15rem; }
+    .server-type {
+      font-size: .7rem;
+      padding: .2rem .5rem;
+      border-radius: 4px;
+      background: var(--bg);
+      color: var(--accent);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .server-url { font-size: .72rem; color: var(--text-muted); margin-top: .3rem; font-family: monospace; }
+    .server-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+    /* Buttons */
+    .btn {
+      padding: .45rem .9rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: .85rem;
+      font-weight: 500;
+      transition: background var(--transition), opacity var(--transition);
+      display: inline-flex;
+      align-items: center;
+      gap: .35rem;
+      white-space: nowrap;
+    }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-hover); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover:not(:disabled) { background: var(--surface2); }
+    .btn-danger  { background: transparent; border: 1px solid #7f1d1d; color: var(--danger); }
+    .btn-danger:hover:not(:disabled) { background: #450a0a; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-success:hover:not(:disabled) { background: #059669; }
+    .btn-sm { padding: .3rem .65rem; font-size: .78rem; }
+
+    /* Toggle */
+    .toggle { position: relative; display: inline-block; width: 40px; height: 22px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; inset: 0;
+      background: var(--surface2); border-radius: 22px; cursor: pointer;
+      transition: background var(--transition);
+    }
+    .slider::before {
+      content: ""; position: absolute;
+      width: 16px; height: 16px; left: 3px; bottom: 3px;
+      background: white; border-radius: 50%;
+      transition: transform var(--transition);
+    }
+    input:checked + .slider { background: var(--success); }
+    input:checked + .slider::before { transform: translateX(18px); }
+
+    /* Modal */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.65); z-index: 100;
+      align-items: center; justify-content: center; padding: 1rem;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface); border-radius: var(--radius);
+      border: 1px solid var(--border);
+      padding: 1.8rem; width: 100%; max-width: 560px;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .modal h3 { font-size: 1.1rem; margin-bottom: 1.2rem; }
+    .modal-footer { display: flex; gap: .8rem; margin-top: 1.4rem; justify-content: flex-end; }
+
+    /* Form */
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; font-size: .82rem; color: var(--text-muted); margin-bottom: .35rem; font-weight: 500; }
+    input[type="text"], input[type="number"], select, textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: .55rem .8rem;
+      font-size: .9rem;
+      font-family: inherit;
+      transition: border-color var(--transition);
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none; border-color: var(--accent);
+    }
+    textarea { resize: vertical; min-height: 80px; font-family: monospace; font-size: .82rem; }
+    select option { background: var(--surface); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
+    .form-check { display: flex; align-items: center; gap: .6rem; margin-top: .25rem; }
+    .form-check input { width: auto; }
+    .hint { font-size: .75rem; color: var(--text-muted); margin-top: .3rem; }
+    .field-group { display: none; }
+    .field-group.active { display: block; }
+
+    /* Env editor */
+    .env-row { display: flex; gap: .5rem; margin-bottom: .5rem; align-items: center; }
+    .env-row input { flex: 1; }
+    .env-add { font-size: .8rem; }
+
+    /* Settings grid */
+    .settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+
+    /* Toast */
+    #toast {
+      position: fixed; bottom: 1.5rem; right: 1.5rem;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: .75rem 1.1rem;
+      font-size: .88rem; z-index: 200;
+      transform: translateY(100px); opacity: 0;
+      transition: transform .25s ease, opacity .25s ease;
+      max-width: 320px;
+    }
+    #toast.show { transform: translateY(0); opacity: 1; }
+    #toast.success { border-left: 3px solid var(--success); }
+    #toast.error   { border-left: 3px solid var(--danger); }
+
+    .empty-state { text-align: center; color: var(--text-muted); padding: 2.5rem 1rem; }
+    .empty-state svg { width: 48px; height: 48px; fill: var(--border); margin-bottom: 1rem; }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm-1 13.5v-7l6 3.5-6 3.5z"/>
+    </svg>
+    MCP Proxy
+  </h1>
+  <div style="display:flex;gap:.7rem;flex-wrap:wrap;">
+    <button class="btn btn-outline" onclick="loadAll()">↻ Refresh</button>
+    <button class="btn btn-success" id="reload-btn" onclick="reloadProxy()">▶ Apply &amp; Restart</button>
+  </div>
+</header>
+
+<!-- Status -->
+<div class="status-bar" id="status-bar">
+  <div class="stat-card">
+    <div class="label">Proxy</div>
+    <div class="value"><span class="dot" id="proxy-dot"></span><span id="proxy-status">–</span></div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Servers configured</div>
+    <div class="value" id="server-count">–</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Servers enabled</div>
+    <div class="value" id="enabled-count">–</div>
+  </div>
+  <div class="stat-card" style="flex:2;">
+    <div class="label">SSE Base URL</div>
+    <div class="value" style="font-size:.85rem;font-family:monospace;" id="base-url">–</div>
+  </div>
+</div>
+
+<!-- Server list -->
+<section>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+    <h2 style="margin:0;">MCP Servers</h2>
+    <button class="btn btn-primary" onclick="openAddModal()">+ Add Server</button>
+  </div>
+  <div class="server-grid" id="server-list">
+    <div class="empty-state">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+      <p>Loading servers…</p>
+    </div>
+  </div>
+</section>
+
+<!-- Proxy settings -->
+<section>
+  <h2>Proxy Settings</h2>
+  <div class="settings-grid">
+    <div class="form-group">
+      <label>Port (SSE)</label>
+      <input type="number" id="cfg-port" value="8080" min="1" max="65535" />
+      <p class="hint">Port exposed for Home Assistant MCP Server integration</p>
+    </div>
+    <div class="form-group">
+      <label>Host</label>
+      <input type="text" id="cfg-host" value="0.0.0.0" />
+    </div>
+    <div class="form-group">
+      <label>Log Level</label>
+      <select id="cfg-loglevel">
+        <option value="DEBUG">DEBUG</option>
+        <option value="INFO" selected>INFO</option>
+        <option value="WARNING">WARNING</option>
+        <option value="ERROR">ERROR</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Allow All Origins (CORS)</label>
+      <div class="form-check">
+        <input type="checkbox" id="cfg-allow-origins" checked />
+        <span>Allow * (required for HA)</span>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Pass Environment</label>
+      <div class="form-check">
+        <input type="checkbox" id="cfg-pass-env" />
+        <span>Forward host env vars to stdio servers</span>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:1rem;">
+    <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+  </div>
+</section>
+
+<!-- Add/Edit Server Modal -->
+<div class="modal-overlay" id="server-modal">
+  <div class="modal">
+    <h3 id="modal-title">Add MCP Server</h3>
+    <input type="hidden" id="edit-name" />
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Name <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="f-name" placeholder="fetch" />
+        <p class="hint">Used in the SSE URL: /servers/<em>name</em>/sse</p>
+      </div>
+      <div class="form-group">
+        <label>Type <span style="color:var(--danger)">*</span></label>
+        <select id="f-type" onchange="onTypeChange()">
+          <option value="uvx">uvx – PyPI package (Python)</option>
+          <option value="npx">npx – npm package (Node.js)</option>
+          <option value="github-python">github-python – Clone &amp; build (Python)</option>
+          <option value="github-node">github-node – Clone &amp; build (Node.js)</option>
+          <option value="command">command – Custom shell command</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Description</label>
+      <input type="text" id="f-desc" placeholder="What does this server do?" />
+    </div>
+
+    <!-- uvx fields -->
+    <div class="field-group active" id="fg-uvx">
+      <div class="form-group">
+        <label>PyPI Package <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="f-uvx-pkg" placeholder="mcp-server-fetch" />
+      </div>
+    </div>
+
+    <!-- npx fields -->
+    <div class="field-group" id="fg-npx">
+      <div class="form-group">
+        <label>npm Package <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="f-npx-pkg" placeholder="@modelcontextprotocol/server-github" />
+      </div>
+    </div>
+
+    <!-- github fields -->
+    <div class="field-group" id="fg-github">
+      <div class="form-group">
+        <label>GitHub Repository URL <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="f-repo" placeholder="https://github.com/example/my-mcp-server" />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Branch</label>
+          <input type="text" id="f-branch" value="main" />
+        </div>
+        <div class="form-group">
+          <label>Install Command</label>
+          <input type="text" id="f-install" placeholder="uv pip install -e ." />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Run Command <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="f-run" placeholder="python -m my_module  or  node dist/index.js" />
+      </div>
+    </div>
+
+    <!-- command fields -->
+    <div class="field-group" id="fg-command">
+      <div class="form-group">
+        <label>Command <span style="color:var(--danger)">*</span></label>
+        <input type="text" id="f-command" placeholder="/usr/local/bin/my-server" />
+      </div>
+    </div>
+
+    <!-- common -->
+    <div class="form-group">
+      <label>Extra Args (one per line)</label>
+      <textarea id="f-args" placeholder="--timeout&#10;30"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Environment Variables</label>
+      <div id="env-rows"></div>
+      <button class="btn btn-outline btn-sm env-add" type="button" onclick="addEnvRow()">+ Add Variable</button>
+      <p class="hint">Use <code style="background:var(--bg);padding:.1rem .3rem;border-radius:3px;">${VAR_NAME}</code> to reference secrets from the host environment.</p>
+    </div>
+
+    <div class="form-check">
+      <input type="checkbox" id="f-enabled" checked />
+      <label for="f-enabled" style="display:inline;margin:0;">Enabled</label>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="modal-save-btn" onclick="saveServer()">Add Server</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  const BASE = '';
+
+  // ── Utilities ──────────────────────────────────────────────────
+  async function api(method, path, body) {
+    const res = await fetch(BASE + path, {
+      method,
+      headers: body ? { 'Content-Type': 'application/json' } : {},
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.detail || `HTTP ${res.status}`);
+    return data;
+  }
+
+  let toastTimer;
+  function toast(msg, type = 'success') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = `show ${type}`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.className = ''; }, 3200);
+  }
+
+  // ── Load data ──────────────────────────────────────────────────
+  async function loadAll() {
+    await Promise.all([loadStatus(), loadServers(), loadSettings()]);
+  }
+
+  async function loadStatus() {
+    try {
+      const d = await api('GET', '/api/status');
+      const dot = document.getElementById('proxy-dot');
+      document.getElementById('proxy-status').textContent = d.proxy_running ? 'Running' : 'Stopped';
+      dot.className = 'dot' + (d.proxy_running ? ' ok' : '');
+      document.getElementById('server-count').textContent = d.server_count;
+      document.getElementById('enabled-count').textContent = d.enabled_count;
+      document.getElementById('base-url').textContent = d.mcp_proxy_url + '/servers/<name>/sse';
+    } catch (e) { console.error('Status error', e); }
+  }
+
+  async function loadServers() {
+    const list = document.getElementById('server-list');
+    try {
+      const servers = await api('GET', '/api/servers');
+      if (!servers.length) {
+        list.innerHTML = `<div class="empty-state">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+          <p>No servers configured yet. Click <strong>Add Server</strong> to get started.</p>
+        </div>`;
+        return;
+      }
+      list.innerHTML = servers.map(s => serverCard(s)).join('');
+    } catch (e) {
+      list.innerHTML = `<div class="empty-state"><p style="color:var(--danger)">Failed to load servers: ${e.message}</p></div>`;
+    }
+  }
+
+  function serverCard(s) {
+    const typeLabel = { uvx: 'PyPI/uvx', npx: 'npm/npx', 'github-python': 'GitHub/Python', 'github-node': 'GitHub/Node', command: 'Command' }[s.type] || s.type;
+    const pkg = s.package || s.repo || s.command || '';
+    const sseUrl = `/servers/${s.name}/sse`;
+    return `<div class="server-card ${s.enabled === false ? 'disabled' : ''}">
+      <label class="toggle" title="${s.enabled === false ? 'Enable' : 'Disable'} server">
+        <input type="checkbox" ${s.enabled !== false ? 'checked' : ''} onchange="toggleServer('${s.name}', this)" />
+        <span class="slider"></span>
+      </label>
+      <div class="server-info">
+        <div class="server-name">${s.name} <span class="server-type">${typeLabel}</span></div>
+        ${s.description ? `<div class="server-desc">${s.description}</div>` : ''}
+        <div class="server-url" title="SSE endpoint (port 8080)">${sseUrl}</div>
+        ${pkg ? `<div class="server-desc" style="margin-top:.2rem;font-family:monospace;font-size:.72rem">${pkg}</div>` : ''}
+      </div>
+      <div class="server-actions">
+        <button class="btn btn-outline btn-sm" onclick='editServer(${JSON.stringify(s)})'>Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteServer('${s.name}')">Delete</button>
+      </div>
+    </div>`;
+  }
+
+  async function toggleServer(name, checkbox) {
+    try {
+      const res = await api('PATCH', `/api/servers/${name}/toggle`);
+      checkbox.checked = res.enabled;
+      toast(`Server '${name}' ${res.enabled ? 'enabled' : 'disabled'}.`);
+      await loadStatus();
+    } catch (e) {
+      toast(e.message, 'error');
+      checkbox.checked = !checkbox.checked;
+    }
+  }
+
+  async function deleteServer(name) {
+    if (!confirm(`Delete server '${name}'? This cannot be undone.`)) return;
+    try {
+      await api('DELETE', `/api/servers/${name}`);
+      toast(`Server '${name}' deleted.`);
+      await loadAll();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  // ── Settings ───────────────────────────────────────────────────
+  async function loadSettings() {
+    try {
+      const d = await api('GET', '/api/proxy-settings');
+      document.getElementById('cfg-port').value = d.port ?? 8080;
+      document.getElementById('cfg-host').value = d.host ?? '0.0.0.0';
+      document.getElementById('cfg-loglevel').value = (d.log_level ?? 'INFO').toUpperCase();
+      document.getElementById('cfg-allow-origins').checked = d.allow_all_origins ?? true;
+      document.getElementById('cfg-pass-env').checked = d.pass_environment ?? false;
+    } catch (e) { console.error(e); }
+  }
+
+  async function saveSettings() {
+    try {
+      await api('PUT', '/api/proxy-settings', {
+        port: parseInt(document.getElementById('cfg-port').value, 10),
+        host: document.getElementById('cfg-host').value,
+        log_level: document.getElementById('cfg-loglevel').value,
+        allow_all_origins: document.getElementById('cfg-allow-origins').checked,
+        pass_environment: document.getElementById('cfg-pass-env').checked,
+      });
+      toast('Proxy settings saved. Click "Apply & Restart" to apply.');
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  async function reloadProxy() {
+    const btn = document.getElementById('reload-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Restarting…';
+    try {
+      await api('POST', '/api/reload');
+      toast('mcp-proxy restarted successfully.');
+      setTimeout(loadStatus, 1500);
+    } catch (e) { toast(e.message, 'error'); }
+    finally {
+      btn.disabled = false;
+      btn.innerHTML = '▶ Apply &amp; Restart';
+    }
+  }
+
+  // ── Modal ──────────────────────────────────────────────────────
+  function openAddModal() {
+    document.getElementById('modal-title').textContent = 'Add MCP Server';
+    document.getElementById('modal-save-btn').textContent = 'Add Server';
+    document.getElementById('edit-name').value = '';
+    document.getElementById('f-name').value = '';
+    document.getElementById('f-name').disabled = false;
+    document.getElementById('f-type').value = 'uvx';
+    document.getElementById('f-desc').value = '';
+    document.getElementById('f-uvx-pkg').value = '';
+    document.getElementById('f-npx-pkg').value = '';
+    document.getElementById('f-repo').value = '';
+    document.getElementById('f-branch').value = 'main';
+    document.getElementById('f-install').value = '';
+    document.getElementById('f-run').value = '';
+    document.getElementById('f-command').value = '';
+    document.getElementById('f-args').value = '';
+    document.getElementById('f-enabled').checked = true;
+    document.getElementById('env-rows').innerHTML = '';
+    onTypeChange();
+    document.getElementById('server-modal').classList.add('open');
+  }
+
+  function editServer(s) {
+    document.getElementById('modal-title').textContent = 'Edit MCP Server';
+    document.getElementById('modal-save-btn').textContent = 'Save Changes';
+    document.getElementById('edit-name').value = s.name;
+    document.getElementById('f-name').value = s.name;
+    document.getElementById('f-name').disabled = true;
+    document.getElementById('f-type').value = s.type || 'uvx';
+    document.getElementById('f-desc').value = s.description || '';
+    document.getElementById('f-uvx-pkg').value = s.package || '';
+    document.getElementById('f-npx-pkg').value = s.package || '';
+    document.getElementById('f-repo').value = s.repo || '';
+    document.getElementById('f-branch').value = s.branch || 'main';
+    document.getElementById('f-install').value = s.install || '';
+    document.getElementById('f-run').value = s.run || '';
+    document.getElementById('f-command').value = s.command || '';
+    document.getElementById('f-args').value = (s.args || []).join('\n');
+    document.getElementById('f-enabled').checked = s.enabled !== false;
+    // Env
+    document.getElementById('env-rows').innerHTML = '';
+    for (const [k, v] of Object.entries(s.env || {})) addEnvRow(k, v);
+    onTypeChange();
+    document.getElementById('server-modal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('server-modal').classList.remove('open');
+  }
+
+  function onTypeChange() {
+    const t = document.getElementById('f-type').value;
+    document.querySelectorAll('.field-group').forEach(el => el.classList.remove('active'));
+    if (t === 'uvx') document.getElementById('fg-uvx').classList.add('active');
+    else if (t === 'npx') document.getElementById('fg-npx').classList.add('active');
+    else if (t.startsWith('github')) document.getElementById('fg-github').classList.add('active');
+    else if (t === 'command') document.getElementById('fg-command').classList.add('active');
+    // Set default install command hint
+    if (t === 'github-node' && !document.getElementById('f-install').value) {
+      document.getElementById('f-install').placeholder = 'npm install';
+    } else if (t === 'github-python' && !document.getElementById('f-install').value) {
+      document.getElementById('f-install').placeholder = 'uv pip install -e .';
+    }
+  }
+
+  function addEnvRow(key = '', val = '') {
+    const row = document.createElement('div');
+    row.className = 'env-row';
+    row.innerHTML = `<input type="text" placeholder="KEY" value="${escHtml(key)}" class="env-key" />
+      <input type="text" placeholder="VALUE or \${SECRET_VAR}" value="${escHtml(val)}" class="env-val" />
+      <button class="btn btn-danger btn-sm" type="button" onclick="this.parentElement.remove()">✕</button>`;
+    document.getElementById('env-rows').appendChild(row);
+  }
+
+  function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;'); }
+
+  async function saveServer() {
+    const editName = document.getElementById('edit-name').value;
+    const isEdit = !!editName;
+    const type = document.getElementById('f-type').value;
+    const name = document.getElementById('f-name').value.trim();
+    if (!name) { toast('Name is required.', 'error'); return; }
+
+    // Build env
+    const envRows = document.querySelectorAll('#env-rows .env-row');
+    const env = {};
+    envRows.forEach(row => {
+      const k = row.querySelector('.env-key').value.trim();
+      const v = row.querySelector('.env-val').value;
+      if (k) env[k] = v;
+    });
+
+    const args = document.getElementById('f-args').value.trim().split('\n').filter(Boolean);
+
+    const payload = {
+      name,
+      description: document.getElementById('f-desc').value.trim(),
+      enabled: document.getElementById('f-enabled').checked,
+      type,
+      args,
+      env,
+      package: null, repo: null, branch: null, install: null, run: null, command: null,
+    };
+
+    if (type === 'uvx') {
+      payload.package = document.getElementById('f-uvx-pkg').value.trim();
+      if (!payload.package) { toast('Package name is required.', 'error'); return; }
+    } else if (type === 'npx') {
+      payload.package = document.getElementById('f-npx-pkg').value.trim();
+      if (!payload.package) { toast('Package name is required.', 'error'); return; }
+    } else if (type.startsWith('github')) {
+      payload.repo = document.getElementById('f-repo').value.trim();
+      payload.branch = document.getElementById('f-branch').value.trim() || 'main';
+      payload.install = document.getElementById('f-install').value.trim() || null;
+      payload.run = document.getElementById('f-run').value.trim();
+      if (!payload.repo || !payload.run) { toast('Repository URL and Run Command are required.', 'error'); return; }
+    } else if (type === 'command') {
+      payload.command = document.getElementById('f-command').value.trim();
+      if (!payload.command) { toast('Command is required.', 'error'); return; }
+    }
+
+    try {
+      if (isEdit) {
+        await api('PUT', `/api/servers/${editName}`, payload);
+        toast(`Server '${name}' updated.`);
+      } else {
+        await api('POST', '/api/servers', payload);
+        toast(`Server '${name}' added.`);
+      }
+      closeModal();
+      await loadAll();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  // Close modal on overlay click
+  document.getElementById('server-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeModal();
+  });
+
+  // ── Init ───────────────────────────────────────────────────────
+  loadAll();
+  setInterval(loadStatus, 15000);
+</script>
+</body>
+</html>
