@@ -4,7 +4,7 @@
 ARG BUILD_FROM=ghcr.io/hassio-addons/base:16.3.2
 FROM ${BUILD_FROM}
 
-# Install system dependencies
+# Install system dependencies (no 'go' here – installed from official binary below)
 RUN apk add --no-cache \
         python3 \
         py3-pip \
@@ -12,13 +12,26 @@ RUN apk add --no-cache \
         git \
         nodejs \
         npm \
-        go \
         curl \
         bash \
         ca-certificates
 
-# Go build cache / module cache
-ENV GOPATH=/go \
+# Install Go from the official binary tarball (arch-aware)
+ARG GO_VERSION=1.23.5
+RUN ARCH=$(uname -m) && \
+    case "$ARCH" in \
+        x86_64)  GOARCH=amd64   ;; \
+        aarch64) GOARCH=arm64   ;; \
+        armv7l)  GOARCH=armv6l  ;; \
+        armv6l)  GOARCH=armv6l  ;; \
+        i686)    GOARCH=386     ;; \
+        *)       GOARCH=amd64   ;; \
+    esac && \
+    curl -fsSL "https://golang.org/dl/go${GO_VERSION}.linux-${GOARCH}.tar.gz" \
+        | tar -C /usr/local -xz
+
+ENV PATH="/usr/local/go/bin:$PATH" \
+    GOPATH=/go \
     GOMODCACHE=/go/pkg/mod \
     GOCACHE=/go/cache \
     CGO_ENABLED=0
