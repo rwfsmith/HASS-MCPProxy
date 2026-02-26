@@ -386,9 +386,9 @@
 <div id="toast"></div>
 
 <script>
-  // Derive base path from current URL so API calls work both directly
-  // and when served through HA Ingress (/api/hassio_ingress/<token>/).
-  const BASE = window.location.pathname.replace(/\/(?:index\.html)?$/, '');
+  // BASE is injected server-side from the X-Ingress-Path header.
+  // Falls back to empty string when accessed directly (not via HA Ingress).
+  const BASE = '__INGRESS_PATH__';
 
   // ── Utilities ──────────────────────────────────────────────────
   async function api(method, path, body) {

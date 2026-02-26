@@ -433,7 +433,15 @@ async def reload_proxy():
 @app.get("/index.html", response_class=HTMLResponse)
 async def serve_ui(request: Request):
     index = STATIC_DIR / "index.html"
-    return HTMLResponse(index.read_text())
+    html = index.read_text()
+    # HA Supervisor sets X-Ingress-Path to the ingress prefix, e.g.
+    # /api/hassio_ingress/TOKEN  – inject it so JS API calls are correct.
+    ingress_path = request.headers.get("X-Ingress-Path", "").rstrip("/")
+    html = html.replace(
+        "__INGRESS_PATH__",
+        ingress_path,
+    )
+    return HTMLResponse(html)
 
 
 static_subdir = STATIC_DIR / "static"
