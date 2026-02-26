@@ -215,11 +215,17 @@ def _build_server_entry(srv: dict) -> dict | None:
             return None
         return {"command": "npx", "args": ["-y", pkg, *args], "env": env}
 
-    if stype in ("github-python", "github-node"):
+    if stype in ("github-python", "github-node", "github-go"):
         name = srv.get("name", "")
         repo = srv.get("repo", "")
         branch = srv.get("branch", "main")
-        install_cmd = srv.get("install", "uv pip install -e ." if stype == "github-python" else "npm install")
+        if stype == "github-python":
+            default_install = "uv pip install -e ."
+        elif stype == "github-node":
+            default_install = "npm install"
+        else:
+            default_install = "go build -o ./bin/server ."
+        install_cmd = srv.get("install", default_install)
         run_cmd = srv.get("run", "")
         if not repo or not run_cmd:
             return None
@@ -244,15 +250,18 @@ def _prepare_github_repos(servers: list[dict]) -> None:
         if not srv.get("enabled", True):
             continue
         stype = srv.get("type", "").lower()
-        if stype not in ("github-python", "github-node"):
+        if stype not in ("github-python", "github-node", "github-go"):
             continue
         name = srv.get("name", "")
         repo = srv.get("repo", "")
         branch = srv.get("branch", "main")
-        install_cmd = srv.get(
-            "install",
-            "uv pip install -e ." if stype == "github-python" else "npm install",
-        )
+        if stype == "github-python":
+            default_install = "uv pip install -e ."
+        elif stype == "github-node":
+            default_install = "npm install"
+        else:
+            default_install = "go build -o ./bin/server ."
+        install_cmd = srv.get("install", default_install)
         dest = REPOS_DIR / name
         REPOS_DIR.mkdir(parents=True, exist_ok=True)
         try:

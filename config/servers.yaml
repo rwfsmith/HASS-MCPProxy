@@ -69,7 +69,20 @@ servers:
   #   run: "node dist/index.js"
   #   args: []
   #   env: {}
-
+  # ── Example: Go server cloned from GitHub ────────────────────────────────
+  # - name: my-go-server
+  #   description: "Custom Go MCP server built from source"
+  #   enabled: false
+  #   type: github-go
+  #   repo: "https://github.com/example/my-go-mcp-server"
+  #   branch: "main"
+  #   # Build command run inside the repo root (default shown)
+  #   install: "go build -o ./bin/server ."
+  #   # Command to start the compiled binary
+  #   run: "./bin/server"
+  #   args: []
+  #   env:
+  #     API_KEY: "${MY_API_KEY}"
   # ── Example: Arbitrary command ────────────────────────────────
   # - name: custom
   #   description: "Any stdio MCP server command"

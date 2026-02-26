@@ -12,9 +12,17 @@ RUN apk add --no-cache \
         git \
         nodejs \
         npm \
+        go \
         curl \
         bash \
         ca-certificates
+
+# Go build cache / module cache
+ENV GOPATH=/go \
+    GOMODCACHE=/go/pkg/mod \
+    GOCACHE=/go/cache \
+    CGO_ENABLED=0
+RUN mkdir -p /go/pkg/mod /go/cache
 
 # Create a virtualenv so we don't pollute the system Python
 RUN python3 -m venv /opt/venv

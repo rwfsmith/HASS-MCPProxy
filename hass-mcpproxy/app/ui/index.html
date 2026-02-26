@@ -301,6 +301,7 @@
           <option value="npx">npx – npm package (Node.js)</option>
           <option value="github-python">github-python – Clone &amp; build (Python)</option>
           <option value="github-node">github-node – Clone &amp; build (Node.js)</option>
+          <option value="github-go">github-go – Clone &amp; build (Go)</option>
           <option value="command">command – Custom shell command</option>
         </select>
       </div>
@@ -443,7 +444,7 @@
   }
 
   function serverCard(s) {
-    const typeLabel = { uvx: 'PyPI/uvx', npx: 'npm/npx', 'github-python': 'GitHub/Python', 'github-node': 'GitHub/Node', command: 'Command' }[s.type] || s.type;
+    const typeLabel = { uvx: 'PyPI/uvx', npx: 'npm/npx', 'github-python': 'GitHub/Python', 'github-node': 'GitHub/Node', 'github-go': 'GitHub/Go', command: 'Command' }[s.type] || s.type;
     const pkg = s.package || s.repo || s.command || '';
     const sseUrl = `/servers/${s.name}/sse`;
     return `<div class="server-card ${s.enabled === false ? 'disabled' : ''}">
@@ -584,10 +585,17 @@
     else if (t.startsWith('github')) document.getElementById('fg-github').classList.add('active');
     else if (t === 'command') document.getElementById('fg-command').classList.add('active');
     // Set default install command hint
-    if (t === 'github-node' && !document.getElementById('f-install').value) {
-      document.getElementById('f-install').placeholder = 'npm install';
-    } else if (t === 'github-python' && !document.getElementById('f-install').value) {
-      document.getElementById('f-install').placeholder = 'uv pip install -e .';
+    const installEl = document.getElementById('f-install');
+    const runEl = document.getElementById('f-run');
+    if (t === 'github-node') {
+      installEl.placeholder = 'npm install';
+      runEl.placeholder = 'node dist/index.js';
+    } else if (t === 'github-python') {
+      installEl.placeholder = 'uv pip install -e .';
+      runEl.placeholder = 'python -m my_module';
+    } else if (t === 'github-go') {
+      installEl.placeholder = 'go build -o ./bin/server .';
+      runEl.placeholder = './bin/server';
     }
   }
 
