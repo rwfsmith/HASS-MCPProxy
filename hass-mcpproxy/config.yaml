@@ -8,6 +8,9 @@ url: "https://github.com/rwfsmith/HASS-MCPProxy"
 arch:
   - amd64
   - aarch64
+  - armv7
+  - armhf
+  - i386
 
 # ── Ports ─────────────────────────────────────────────────────────
 # Port 8080 is the mcp-proxy SSE port (used by HA MCP Server integration)
@@ -39,5 +42,3 @@ schema:
   allow_all_origins: bool
   pass_environment: bool
 
-# ── Resources ─────────────────────────────────────────────────────
-image: "ghcr.io/{arch}/alpine-base:{version}"

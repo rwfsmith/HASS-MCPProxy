@@ -1,0 +1,6 @@
+build_from:
+  amd64: "ghcr.io/hassio-addons/base:16.3.2"
+  aarch64: "ghcr.io/hassio-addons/base:16.3.2"
+  armv7: "ghcr.io/hassio-addons/base:16.3.2"
+  armhf: "ghcr.io/hassio-addons/base:16.3.2"
+  i386: "ghcr.io/hassio-addons/base:16.3.2"
