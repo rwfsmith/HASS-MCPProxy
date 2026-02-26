@@ -19,7 +19,7 @@ Built on top of [sparfenyuk/mcp-proxy](https://github.com/sparfenyuk/mcp-proxy) 
 1. In Home Assistant go to **Settings → Add-ons → Add-on Store → ⋮ → Repositories**.
 2. Add this repository URL:
    ```
-   https://github.com/yourname/HASS-MCPProxy
+   https://github.com/rwfsmith/HASS-MCPProxy
    ```
 3. Find **HASS MCP Proxy** in the store and click **Install**.
 4. Start the add-on. A **MCP Proxy** entry will appear in your sidebar.
@@ -83,7 +83,7 @@ The add-on includes a full management UI accessible from the Home Assistant side
 ### 1. Clone this repo
 
 ```bash
-git clone https://github.com/yourname/HASS-MCPProxy
+git clone https://github.com/rwfsmith/HASS-MCPProxy
 cd HASS-MCPProxy
 ```
 
