@@ -49,13 +49,14 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# ── Playwright configuration ──────────────────────────────────────────────────
-# Store downloaded browsers in /data (persisted HA volume) so they survive
-# container restarts. On first use Playwright downloads Chromium (~170 MB) once.
-# No workarounds needed – Ubuntu glibc is fully compatible with Playwright.
-ENV PLAYWRIGHT_BROWSERS_PATH=/data/playwright-browsers \
+# ── Playwright – install Chromium at build time ──────────────────────────────
+# Bake Chromium into the image so no runtime download is needed.
+# /opt/playwright-browsers is inside the container (not the /data volume).
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright-browsers \
+    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=0 \
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     CHROMIUM_FLAGS="--no-sandbox --disable-dev-shm-usage --disable-gpu"
+RUN npx --yes playwright@latest install chromium
 
 # ── Go (official binary tarball, arch-aware) ──────────────────────────────────
 ARG GO_VERSION=1.23.5
@@ -96,7 +97,7 @@ COPY run.sh /run.sh
 RUN chmod +x /run.sh
 
 # Persistent data dir (mapped by HA supervisor to /data)
-RUN mkdir -p /data /data/playwright-browsers
+RUN mkdir -p /data
 
 WORKDIR /app
 

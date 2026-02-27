@@ -24,9 +24,9 @@ proxy:
 servers:
 
   # ── Example: Playwright MCP server (browser automation) ──────
-  # Requires Chromium. --no-sandbox is auto-injected via a config file
-  # (/data/playwright-mcp-config.json) because the container runs as root.
-  # Browsers are downloaded on first use to /data/playwright-browsers.
+  # Chromium is baked into the add-on image at build time.
+  # --no-sandbox is auto-injected via /data/playwright-mcp-config.json
+  # because the container runs as root.
   # - name: playwright
   #   description: "Browser automation via Playwright"
   #   enabled: false
