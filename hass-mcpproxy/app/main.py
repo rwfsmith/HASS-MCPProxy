@@ -262,7 +262,7 @@ def _build_server_entry(srv: dict) -> dict | None:
         dest = REPOS_DIR / name
         # Clone is done synchronously at startup via _prepare_github (see below)
         parts = shlex.split(run_cmd) + args
-        return {"command": parts[0], "args": parts[1:], "env": env, "_dest": str(dest)}
+        return {"command": parts[0], "args": parts[1:], "env": env, "cwd": str(dest)}
 
     if stype == "command":
         cmd = srv.get("command", "")
