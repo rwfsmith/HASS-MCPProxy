@@ -262,7 +262,12 @@ def _build_server_entry(srv: dict) -> dict | None:
         dest = REPOS_DIR / name
         # Clone is done synchronously at startup via _prepare_github (see below)
         parts = shlex.split(run_cmd) + args
-        return {"command": parts[0], "args": parts[1:], "env": env, "cwd": str(dest)}
+        # Resolve relative paths (./binary, bin/server) to absolute so mcp-proxy
+        # can find the binary regardless of its own working directory.
+        cmd_part = parts[0]
+        if not cmd_part.startswith("/"):
+            cmd_part = str((dest / cmd_part).resolve())
+        return {"command": cmd_part, "args": parts[1:], "env": env}
 
     if stype == "command":
         cmd = srv.get("command", "")
