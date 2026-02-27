@@ -24,18 +24,16 @@ proxy:
 servers:
 
   # ── Example: Playwright MCP server (browser automation) ──────
-  # Requires Chromium. The container runs as root, so --no-sandbox is
-  # mandatory (Chromium refuses to launch without it as root).
+  # Requires Chromium. --no-sandbox is auto-injected via a config file
+  # (/data/playwright-mcp-config.json) because the container runs as root.
   # Browsers are downloaded on first use to /data/playwright-browsers.
   # - name: playwright
   #   description: "Browser automation via Playwright"
   #   enabled: false
   #   type: npx
-  #   package: "@playwright/mcp"
+  #   package: "@playwright/mcp@latest"
   #   args:
   #     - "--headless"
-  #     - "--launch-options"
-  #     - '{"args":["--no-sandbox","--disable-dev-shm-usage"]}'
   #   env: {}
 
   # ── Example: Fetch server (PyPI package via uvx) ──────────────

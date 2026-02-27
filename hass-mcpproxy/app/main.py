@@ -27,6 +27,7 @@ from pydantic import BaseModel, Field
 DATA_DIR = Path(os.environ.get("DATA_DIR", "/data"))
 CONFIG_FILE = DATA_DIR / "servers.yaml"
 GENERATED_CONFIG = DATA_DIR / "mcp_servers.json"
+PLAYWRIGHT_CONFIG = DATA_DIR / "playwright-mcp-config.json"
 STATIC_DIR = Path(__file__).parent / "ui"
 MCP_PROXY_PORT = int(os.environ.get("MCP_PROXY_PORT", "8080"))
 MCP_PROXY_HOST = os.environ.get("MCP_PROXY_HOST", "0.0.0.0")
@@ -135,6 +136,16 @@ class ProxyManager:
             log.warning("No enabled servers – mcp-proxy will not start.")
             return
 
+        # Write Playwright config (--no-sandbox required when running as root in Docker)
+        PLAYWRIGHT_CONFIG.parent.mkdir(parents=True, exist_ok=True)
+        PLAYWRIGHT_CONFIG.write_text(json.dumps({
+            "browser": {
+                "launchOptions": {
+                    "args": ["--no-sandbox", "--disable-dev-shm-usage"]
+                }
+            }
+        }, indent=2))
+
         # Build generated config for --named-server-config
         mcp_servers: dict[str, dict] = {}
         for srv in enabled:
@@ -213,6 +224,25 @@ def _build_server_entry(srv: dict) -> dict | None:
         pkg = srv.get("package", "")
         if not pkg:
             return None
+        # For @playwright/mcp: strip any --launch-options args (not supported),
+        # and auto-inject --config pointing to our pre-written config file that
+        # provides --no-sandbox (required when running as root in Docker).
+        if "playwright/mcp" in pkg:
+            filtered_args: list[str] = []
+            skip_next = False
+            for a in args:
+                if skip_next:
+                    skip_next = False
+                    continue
+                if a == "--launch-options":
+                    skip_next = True
+                    continue
+                if a.startswith("--launch-options="):
+                    continue
+                filtered_args.append(a)
+            args = filtered_args
+            if "--config" not in args:
+                args = ["--config", str(PLAYWRIGHT_CONFIG)] + args
         return {"command": "npx", "args": ["-y", pkg, *args], "env": env}
 
     if stype in ("github-python", "github-node", "github-go"):
