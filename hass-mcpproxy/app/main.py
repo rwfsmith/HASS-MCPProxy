@@ -302,10 +302,11 @@ def _build_server_entry(srv: dict) -> dict | None:
         dest = REPOS_DIR / name
         # Clone is done synchronously at startup via _prepare_github (see below)
         parts = shlex.split(run_cmd) + args
-        # Resolve relative paths (./binary, bin/server) to absolute so mcp-proxy
-        # can find the binary regardless of its own working directory.
+        # Only resolve explicitly relative paths (./binary or ../x) to absolute.
+        # Bare command names (python, node, uvicorn) are left as-is so the
+        # system PATH is searched normally.
         cmd_part = parts[0]
-        if not cmd_part.startswith("/"):
+        if cmd_part.startswith("./") or cmd_part.startswith("../"):
             cmd_part = str((dest / cmd_part).resolve())
         return {"command": cmd_part, "args": parts[1:], "env": env}
 
