@@ -32,12 +32,14 @@ RUN apk add --no-cache \
         xvfb
 
 # Tell Playwright to use the system Chromium instead of downloading its own.
-# PLAYWRIGHT_BROWSERS_PATH=0 means "use system browser at the well-known path".
+# Playwright's bundled Chromium is glibc-compiled; Alpine uses musl – incompatible.
+# Point everything at the Alpine-native /usr/bin/chromium-browser instead.
 ENV PLAYWRIGHT_BROWSERS_PATH=/usr/bin \
     PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser \
+    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    # Run Chromium without sandbox inside a container \
+    # Required flags for Chromium inside an unprivileged container \
     CHROMIUM_FLAGS="--no-sandbox --disable-dev-shm-usage --disable-gpu --headless"
 
 # Install Go from the official binary tarball (arch-aware)
