@@ -299,24 +299,38 @@ def _prepare_github_repos(servers: list[dict]) -> None:
         install_cmd = srv.get("install", default_install)
         dest = REPOS_DIR / name
         REPOS_DIR.mkdir(parents=True, exist_ok=True)
+        def _run(cmd: str, **kwargs) -> None:
+            result = subprocess.run(
+                cmd, shell=True, capture_output=True, text=True, **kwargs
+            )
+            if result.stdout.strip():
+                for line in result.stdout.strip().splitlines():
+                    log.info("[build:%s] %s", name, line)
+            if result.stderr.strip():
+                for line in result.stderr.strip().splitlines():
+                    log.warning("[build:%s] %s", name, line)
+            if result.returncode != 0:
+                raise subprocess.CalledProcessError(result.returncode, cmd)
+
         try:
             if dest.exists():
                 log.info("Updating repo '%s'…", name)
-                subprocess.run(
-                    f"git fetch origin && git checkout {branch} && git pull",
-                    shell=True, cwd=dest, check=True,
-                )
+                _run(f"git fetch origin && git checkout {branch} && git pull", cwd=dest)
             else:
                 log.info("Cloning '%s' (%s)…", repo, branch)
-                subprocess.run(
+                _run(
                     f"git clone --depth=1 --branch {shlex.quote(branch)} "
-                    f"{shlex.quote(repo)} {dest}",
-                    shell=True, check=True,
+                    f"{shlex.quote(repo)} {shlex.quote(str(dest))}"
                 )
-            log.info("Installing deps for '%s' (%s)…", name, install_cmd)
-            subprocess.run(install_cmd, shell=True, cwd=dest, check=True)
+            log.info("Running install for '%s': %s", name, install_cmd)
+            _run(install_cmd, cwd=dest)
+            log.info("Build complete for '%s'. Contents of %s:", name, dest)
+            for f in sorted(dest.rglob("*")):
+                if f.is_file() and not any(p.startswith(".") for p in f.parts):
+                    log.info("[build:%s]   %s", name, f.relative_to(dest))
         except subprocess.CalledProcessError as exc:
-            log.error("Failed to prepare GitHub server '%s': %s", name, exc)
+            log.error("Failed to prepare GitHub server '%s' (exit %d) – check build logs above",
+                      name, exc.returncode)
 
 
 # ── Lifespan ──────────────────────────────────────────────────────────────────
