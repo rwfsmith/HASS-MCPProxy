@@ -14,7 +14,31 @@ RUN apk add --no-cache \
         npm \
         curl \
         bash \
-        ca-certificates
+        ca-certificates \
+        # Chromium + runtime libraries required by Playwright \
+        chromium \
+        chromium-chromedriver \
+        nss \
+        freetype \
+        freetype-dev \
+        harfbuzz \
+        ttf-freefont \
+        font-noto-emoji \
+        libstdc++ \
+        libgcc \
+        udev \
+        at-spi2-core \
+        mesa-gl \
+        xvfb
+
+# Tell Playwright to use the system Chromium instead of downloading its own.
+# PLAYWRIGHT_BROWSERS_PATH=0 means "use system browser at the well-known path".
+ENV PLAYWRIGHT_BROWSERS_PATH=/usr/bin \
+    PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser \
+    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
+    PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
+    # Run Chromium without sandbox inside a container \
+    CHROMIUM_FLAGS="--no-sandbox --disable-dev-shm-usage --disable-gpu --headless"
 
 # Install Go from the official binary tarball (arch-aware)
 ARG GO_VERSION=1.23.5

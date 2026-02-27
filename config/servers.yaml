@@ -18,9 +18,20 @@ proxy:
 #   npx          – Run an npm package with `npx` (no cloning needed)
 #   github-python – Clone a GitHub repo and run with Python / uv
 #   github-node   – Clone a GitHub repo and run with Node.js
+#   github-go     – Clone a GitHub repo, go build, run binary
 #   command       – Arbitrary shell command (advanced)
 # ─────────────────────────────────────────────────────────────────
 servers:
+
+  # ── Example: Playwright MCP server (browser automation) ──────
+  # Requires Chromium installed in the container (included by default).
+  # - name: playwright
+  #   description: "Browser automation via Playwright"
+  #   enabled: false
+  #   type: npx
+  #   package: "@playwright/mcp"
+  #   args: ["--headless"]
+  #   env: {}
 
   # ── Example: Fetch server (PyPI package via uvx) ──────────────
   - name: fetch
