@@ -1,3 +1,4 @@
-build_from:
-  amd64: "ubuntu:24.04"
-  aarch64: "ubuntu:24.04"
+# Architecture support only — base image is hardcoded in Dockerfile
+# to prevent HA Supervisor overriding it with an Alpine base.
+args:
+  BUILD_ARCH: "{arch}"

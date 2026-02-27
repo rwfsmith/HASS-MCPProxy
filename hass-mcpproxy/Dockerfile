@@ -1,10 +1,10 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # HASS-MCPProxy Add-on Dockerfile – Ubuntu 24.04 LTS (Noble)
-# Ubuntu uses glibc, so Playwright's bundled Chromium works natively.
-# ubuntu:24.04 is a public multi-arch image (amd64, arm64).
+# Ubuntu uses glibc so Playwright's bundled Chromium works natively.
+# ubuntu:24.04 is a public multi-arch Docker Hub image (amd64, arm64).
+# Hardcoded FROM prevents HA Supervisor from overriding with Alpine base.
 # ─────────────────────────────────────────────────────────────────────────────
-ARG BUILD_FROM=ubuntu:24.04
-FROM ${BUILD_FROM}
+FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
