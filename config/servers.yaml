@@ -24,10 +24,9 @@ proxy:
 servers:
 
   # ── Example: Playwright MCP server (browser automation) ──────
-  # Requires Chromium installed in the container (included by default).
-  # No --executable-path needed — Ubuntu uses glibc, so Playwright's
-  # bundled Chromium works natively. Browsers are downloaded on first
-  # use to /data/playwright-browsers (persisted across restarts).
+  # Requires Chromium. The container runs as root, so --no-sandbox is
+  # mandatory (Chromium refuses to launch without it as root).
+  # Browsers are downloaded on first use to /data/playwright-browsers.
   # - name: playwright
   #   description: "Browser automation via Playwright"
   #   enabled: false
@@ -35,6 +34,8 @@ servers:
   #   package: "@playwright/mcp"
   #   args:
   #     - "--headless"
+  #     - "--launch-options"
+  #     - '{"args":["--no-sandbox","--disable-dev-shm-usage"]}'
   #   env: {}
 
   # ── Example: Fetch server (PyPI package via uvx) ──────────────
