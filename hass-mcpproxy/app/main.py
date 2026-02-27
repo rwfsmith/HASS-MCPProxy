@@ -254,7 +254,7 @@ def _build_server_entry(srv: dict) -> dict | None:
         elif stype == "github-node":
             default_install = "npm install"
         else:
-            default_install = "go build -o ./bin/server ."
+            default_install = "go build ."
         install_cmd = srv.get("install", default_install)
         run_cmd = srv.get("run", "")
         if not repo or not run_cmd:
@@ -295,7 +295,7 @@ def _prepare_github_repos(servers: list[dict]) -> None:
         elif stype == "github-node":
             default_install = "npm install"
         else:
-            default_install = "go build -o ./bin/server ."
+            default_install = "go build ."
         install_cmd = srv.get("install", default_install)
         dest = REPOS_DIR / name
         REPOS_DIR.mkdir(parents=True, exist_ok=True)
