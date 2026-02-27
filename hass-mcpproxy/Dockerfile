@@ -1,8 +1,9 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# HASS-MCPProxy Add-on Dockerfile – Ubuntu base
+# HASS-MCPProxy Add-on Dockerfile – Ubuntu 24.04 LTS (Noble)
 # Ubuntu uses glibc, so Playwright's bundled Chromium works natively.
+# ubuntu:24.04 is a public multi-arch image (amd64, arm64).
 # ─────────────────────────────────────────────────────────────────────────────
-ARG BUILD_FROM=ghcr.io/hassio-addons/base-ubuntu:12.3.3
+ARG BUILD_FROM=ubuntu:24.04
 FROM ${BUILD_FROM}
 
 ENV DEBIAN_FRONTEND=noninteractive
