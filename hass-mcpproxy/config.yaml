@@ -1,5 +1,5 @@
 name: "HASS MCP Proxy"
-version: "1.0.17"
+version: "1.0.18"
 slug: "hass_mcpproxy"
 description: "Run and manage MCP stdio servers, exposing SSE endpoints for the Home Assistant MCP Server integration."
 url: "https://github.com/rwfsmith/HASS-MCPProxy"

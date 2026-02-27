@@ -46,6 +46,39 @@ def _load_ha_options() -> dict:
 
 _ha_opts = _load_ha_options()
 
+# ── Fetch HA home location from Supervisor API ────────────────────────────────
+# Injects HA_LATITUDE, HA_LONGITUDE, HA_LOCATION_NAME, HA_TIMEZONE,
+# HA_ELEVATION, HA_COUNTRY into os.environ so server configs can reference
+# them with ${HA_LATITUDE} etc. Requires SUPERVISOR_TOKEN (auto-injected by HA).
+def _inject_ha_location() -> None:
+    token = os.environ.get("SUPERVISOR_TOKEN")
+    if not token:
+        return
+    try:
+        import urllib.request
+        req = urllib.request.Request(
+            "http://supervisor/core/api/config",
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            data = json.loads(resp.read())
+        mapping = {
+            "HA_LATITUDE":      str(data.get("latitude", "")),
+            "HA_LONGITUDE":     str(data.get("longitude", "")),
+            "HA_ELEVATION":     str(data.get("elevation", "")),
+            "HA_LOCATION_NAME": str(data.get("location_name", "")),
+            "HA_TIMEZONE":      str(data.get("time_zone", "")),
+            "HA_COUNTRY":       str(data.get("country", "")),
+        }
+        for k, v in mapping.items():
+            if v:
+                os.environ.setdefault(k, v)
+    except Exception as exc:
+        # Non-fatal – log after logger is configured
+        os.environ["_HA_LOCATION_ERR"] = str(exc)
+
+_inject_ha_location()
+
 LOG_LEVEL = _ha_opts.get("log_level", os.environ.get("LOG_LEVEL", "info")).upper()
 ALLOW_ALL_ORIGINS = bool(_ha_opts.get("allow_all_origins", os.environ.get("ALLOW_ALL_ORIGINS", "true") == "true"))
 PASS_ENVIRONMENT = bool(_ha_opts.get("pass_environment", os.environ.get("PASS_ENVIRONMENT", "false") == "true"))
@@ -56,6 +89,13 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 log = logging.getLogger("hass-mcpproxy")
+
+_loc_err = os.environ.pop("_HA_LOCATION_ERR", None)
+if _loc_err:
+    log.warning("Could not fetch HA location from Supervisor API: %s", _loc_err)
+elif os.environ.get("HA_LATITUDE"):
+    log.info("HA location: %s (%s, %s)", os.environ.get("HA_LOCATION_NAME"),
+             os.environ.get("HA_LATITUDE"), os.environ.get("HA_LONGITUDE"))
 
 # ── Default config ────────────────────────────────────────────────────────────
 DEFAULT_CONFIG: dict[str, Any] = {
