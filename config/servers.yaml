@@ -25,9 +25,9 @@ servers:
 
   # ── Example: Playwright MCP server (browser automation) ──────
   # Requires Chromium installed in the container (included by default).
-  # IMPORTANT: --executable-path is required on Alpine Linux to point
-  # Playwright at the system Chromium (musl-compatible) instead of its
-  # own bundled binary (glibc-only).
+  # No --executable-path needed — Ubuntu uses glibc, so Playwright's
+  # bundled Chromium works natively. Browsers are downloaded on first
+  # use to /data/playwright-browsers (persisted across restarts).
   # - name: playwright
   #   description: "Browser automation via Playwright"
   #   enabled: false
@@ -35,8 +35,6 @@ servers:
   #   package: "@playwright/mcp"
   #   args:
   #     - "--headless"
-  #     - "--executable-path"
-  #     - "/usr/bin/chromium-browser"
   #   env: {}
 
   # ── Example: Fetch server (PyPI package via uvx) ──────────────

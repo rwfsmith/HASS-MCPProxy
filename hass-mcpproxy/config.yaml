@@ -1,5 +1,5 @@
 name: "HASS MCP Proxy"
-version: "1.0.7"
+version: "1.0.8"
 slug: "hass_mcpproxy"
 description: "Run and manage MCP stdio servers, exposing SSE endpoints for the Home Assistant MCP Server integration."
 url: "https://github.com/rwfsmith/HASS-MCPProxy"
@@ -8,9 +8,6 @@ url: "https://github.com/rwfsmith/HASS-MCPProxy"
 arch:
   - amd64
   - aarch64
-  - armv7
-  - armhf
-  - i386
 
 # ── Ports ─────────────────────────────────────────────────────────
 # Port 8080 is the mcp-proxy SSE port (used by HA MCP Server integration)

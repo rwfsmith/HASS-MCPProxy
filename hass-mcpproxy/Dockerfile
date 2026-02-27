@@ -1,57 +1,68 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# HASS-MCPProxy Add-on Dockerfile
+# HASS-MCPProxy Add-on Dockerfile – Ubuntu base
+# Ubuntu uses glibc, so Playwright's bundled Chromium works natively.
 # ─────────────────────────────────────────────────────────────────────────────
-ARG BUILD_FROM=ghcr.io/hassio-addons/base:16.3.2
+ARG BUILD_FROM=ghcr.io/hassio-addons/base-ubuntu:12.3.3
 FROM ${BUILD_FROM}
 
-# Install system dependencies (no 'go' here – installed from official binary below)
-RUN apk add --no-cache \
+ENV DEBIAN_FRONTEND=noninteractive
+
+# ── System packages ───────────────────────────────────────────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 \
-        py3-pip \
-        py3-virtualenv \
+        python3-pip \
+        python3-venv \
         git \
-        nodejs \
-        npm \
         curl \
         bash \
         ca-certificates \
-        # Chromium + runtime libraries required by Playwright \
-        chromium \
-        chromium-chromedriver \
-        nss \
-        freetype \
-        freetype-dev \
-        harfbuzz \
-        ttf-freefont \
-        font-noto-emoji \
-        libstdc++ \
-        libgcc \
-        udev \
-        at-spi2-core \
-        mesa-gl \
-        xvfb
+        gnupg \
+        # Playwright / Chromium glibc runtime deps \
+        libglib2.0-0 \
+        libnss3 \
+        libnspr4 \
+        libatk1.0-0 \
+        libatk-bridge2.0-0 \
+        libcups2 \
+        libdrm2 \
+        libdbus-1-3 \
+        libxcb1 \
+        libxkbcommon0 \
+        libx11-6 \
+        libxcomposite1 \
+        libxdamage1 \
+        libxext6 \
+        libxfixes3 \
+        libxrandr2 \
+        libgbm1 \
+        libpango-1.0-0 \
+        libcairo2 \
+        libasound2 \
+        libatspi2.0-0 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-# Tell Playwright to use the system Chromium instead of downloading its own.
-# Playwright's bundled Chromium is glibc-compiled; Alpine uses musl – incompatible.
-# Point everything at the Alpine-native /usr/bin/chromium-browser instead.
-ENV PLAYWRIGHT_BROWSERS_PATH=/usr/bin \
-    PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/chromium-browser \
-    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
-    PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser \
+# ── Node.js 22 (via NodeSource) ───────────────────────────────────────────────
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Playwright configuration ──────────────────────────────────────────────────
+# Store downloaded browsers in /data (persisted HA volume) so they survive
+# container restarts. On first use Playwright downloads Chromium (~170 MB) once.
+# No workarounds needed – Ubuntu glibc is fully compatible with Playwright.
+ENV PLAYWRIGHT_BROWSERS_PATH=/data/playwright-browsers \
     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
-    # Required flags for Chromium inside an unprivileged container \
-    CHROMIUM_FLAGS="--no-sandbox --disable-dev-shm-usage --disable-gpu --headless"
+    CHROMIUM_FLAGS="--no-sandbox --disable-dev-shm-usage --disable-gpu"
 
-# Install Go from the official binary tarball (arch-aware)
+# ── Go (official binary tarball, arch-aware) ──────────────────────────────────
 ARG GO_VERSION=1.23.5
 RUN ARCH=$(uname -m) && \
     case "$ARCH" in \
-        x86_64)  GOARCH=amd64   ;; \
-        aarch64) GOARCH=arm64   ;; \
-        armv7l)  GOARCH=armv6l  ;; \
-        armv6l)  GOARCH=armv6l  ;; \
-        i686)    GOARCH=386     ;; \
-        *)       GOARCH=amd64   ;; \
+        x86_64)  GOARCH=amd64 ;; \
+        aarch64) GOARCH=arm64 ;; \
+        *)       GOARCH=amd64 ;; \
     esac && \
     curl -fsSL "https://golang.org/dl/go${GO_VERSION}.linux-${GOARCH}.tar.gz" \
         | tar -C /usr/local -xz
@@ -63,11 +74,12 @@ ENV PATH="/usr/local/go/bin:$PATH" \
     CGO_ENABLED=0
 RUN mkdir -p /go/pkg/mod /go/cache
 
+# ── Python virtualenv + packages ─────────────────────────────────────────────
 # Create a virtualenv so we don't pollute the system Python
 RUN python3 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install uv, mcp-proxy, and Python web server deps inside the venv
+# Install uv, mcp-proxy, and Python web server deps
 COPY app/requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir uv mcp-proxy && \
     pip install --no-cache-dir -r /tmp/requirements.txt
@@ -76,13 +88,14 @@ RUN pip install --no-cache-dir uv mcp-proxy && \
 ENV UV_PYTHON_PREFERENCE=only-system \
     UV_SYSTEM_PYTHON=1
 
+# ── Add-on files ──────────────────────────────────────────────────────────────
 # Copy add-on application files
 COPY app/ /app/
 COPY run.sh /run.sh
 RUN chmod +x /run.sh
 
 # Persistent data dir (mapped by HA supervisor to /data)
-RUN mkdir -p /data
+RUN mkdir -p /data /data/playwright-browsers
 
 WORKDIR /app
 
